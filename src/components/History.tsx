@@ -13,7 +13,8 @@ interface HistoryProps {
   refreshTrigger: number;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const API_BASE = import.meta.env.VITE_API_URL || (SUPABASE_URL ? `${SUPABASE_URL}/functions/v1` : 'http://localhost:3001');
 
 export function History({ refreshTrigger }: HistoryProps) {
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -28,7 +29,7 @@ export function History({ refreshTrigger }: HistoryProps) {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(`${API_BASE}/api/history`);
+      const response = await fetch(`${API_BASE}/api-history`);
       if (!response.ok) {
         throw new Error('Failed to fetch history');
       }
