@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AlertCircle, CheckCircle } from 'lucide-react';
-
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 interface Prediction {
   verdict: string;
   explanation: string;
@@ -27,7 +27,7 @@ export function NewsChecker({ onPredictionComplete }: NewsCheckerProps) {
     setPrediction(null);
 
     try {
-      const response = await fetch('http://localhost:3001/api/predict', {
+      const response = await fetch(`${API_BASE}/api/predict`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
