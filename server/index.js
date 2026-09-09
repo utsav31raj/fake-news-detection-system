@@ -11,15 +11,25 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY
-);
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables');
+}
+
+const supabase = supabaseUrl && supabaseAnonKey
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 const fakeNewsKeywords = ['shocking', 'unbelievable', 'breaking', 'click here', 'you won\'t believe', 'secret', 'miracle', 'doctors hate'];
 
 app.post('/api/predict', async (req, res) => {
   try {
+    if (!supabase) {
+      return res.status(500).json({ error: 'Supabase client not initialized' });
+    }
+
     const { text } = req.body;
 
     if (!text || text.trim().length === 0) {
@@ -67,6 +77,10 @@ app.post('/api/predict', async (req, res) => {
 
 app.get('/api/history', async (req, res) => {
   try {
+    if (!supabase) {
+      return res.status(500).json({ error: 'Supabase client not initialized' });
+    }
+
     const { data, error } = await supabase
       .from('predictions')
       .select('*')
@@ -85,6 +99,6 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on 0.0.0.0:${PORT}`);
 });

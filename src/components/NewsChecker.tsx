@@ -1,12 +1,6 @@
 import { useState } from 'react';
-import { AlertCircle, CheckCircle } from 'lucide-react';
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
-const API_BASE = import.meta.env.VITE_API_URL || (SUPABASE_URL ? `${SUPABASE_URL}/functions/v1` : 'http://localhost:3001');
-interface Prediction {
-  verdict: string;
-  explanation: string;
-}
+import { AlertCircle, CheckCircle, Loader2, Search } from 'lucide-react';
+import { checkNews, type Prediction } from '../lib/api';
 
 interface NewsCheckerProps {
   onPredictionComplete: () => void;
@@ -18,7 +12,7 @@ export function NewsChecker({ onPredictionComplete }: NewsCheckerProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const checkNews = async () => {
+  const check = async () => {
     if (!text.trim()) {
       setError('Please enter some text to check');
       return;
@@ -29,23 +23,12 @@ export function NewsChecker({ onPredictionComplete }: NewsCheckerProps) {
     setPrediction(null);
 
     try {
-      const response = await fetch(`${API_BASE}/api-predict`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to check news');
-      }
-
-      const data = await response.json();
+      const data = await checkNews(text);
       setPrediction(data);
       onPredictionComplete();
     } catch (err) {
-      setError('Failed to check news. Make sure the server is running.');
+      const msg = err instanceof Error ? err.message : 'Failed to check news';
+      setError(msg);
       console.error(err);
     } finally {
       setLoading(false);
@@ -53,41 +36,52 @@ export function NewsChecker({ onPredictionComplete }: NewsCheckerProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+    <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 mb-8 border border-gray-100">
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="Enter a news headline or paragraph to check..."
-        className="w-full h-32 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        className="w-full h-32 p-4 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-400 transition-all"
       />
 
       <button
-        onClick={checkNews}
+        onClick={check}
         disabled={loading}
-        className="mt-4 w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+        className="mt-4 w-full bg-blue-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-blue-700 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
       >
-        {loading ? 'Checking...' : 'Check News'}
+        {loading ? (
+          <>
+            <Loader2 className="w-5 h-5 animate-spin" />
+            Checking...
+          </>
+        ) : (
+          <>
+            <Search className="w-5 h-5" />
+            Check News
+          </>
+        )}
       </button>
 
       {error && (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
           {error}
         </div>
       )}
 
       {prediction && (
-        <div className="mt-6 space-y-4">
+        <div className="mt-6">
           <div
-            className={`p-4 rounded-lg flex items-center gap-3 ${
+            className={`p-5 rounded-xl flex items-center gap-4 ${
               prediction.verdict === 'Fake'
                 ? 'bg-red-50 border border-red-200'
                 : 'bg-green-50 border border-green-200'
             }`}
           >
             {prediction.verdict === 'Fake' ? (
-              <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
+              <AlertCircle className="w-8 h-8 text-red-600 flex-shrink-0" />
             ) : (
-              <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+              <CheckCircle className="w-8 h-8 text-green-600 flex-shrink-0" />
             )}
             <div>
               <p
@@ -97,7 +91,7 @@ export function NewsChecker({ onPredictionComplete }: NewsCheckerProps) {
               >
                 This news appears {prediction.verdict}
               </p>
-              <p className="text-sm text-gray-700 mt-1">{prediction.explanation}</p>
+              <p className="text-sm text-gray-600 mt-1">{prediction.explanation}</p>
             </div>
           </div>
         </div>
@@ -106,5 +100,4 @@ export function NewsChecker({ onPredictionComplete }: NewsCheckerProps) {
   );
 }
 
-// ✅ Add this line so App.tsx can import it as: import NewsChecker from './components/NewsChecker';
 export default NewsChecker;
